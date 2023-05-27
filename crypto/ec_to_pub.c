@@ -1,5 +1,12 @@
 #include "hblk_crypto.h"
 
+/**
+ * ec_to_pub - Extracts the public key from an EC_KEY opaque structure
+ * @key: pointer to the EC_KEY structure to retrieve the key from
+ * @pub: address at which to store the extracted public key
+ * Return: Pointer to pub, otherwise NULL
+ */
+
 uint8_t *ec_to_pub(EC_KEY const *key, uint8_t pub[EC_PUB_LEN])
 {
 	const EC_POINT *pub_key;
