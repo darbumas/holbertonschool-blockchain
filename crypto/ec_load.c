@@ -20,7 +20,7 @@ EC_KEY *ec_load(char const *folder)
 		return (NULL);
 
 	/* Open file containing the priv key */
-	sprintf(path, "%s/%s", folder, PRI_FILENAME);
+	sprintf(path, "%s/%s", folder, "key.pem");
 	file = fopen(path, "r");
 	if (!file)
 		return (NULL);
@@ -32,7 +32,7 @@ EC_KEY *ec_load(char const *folder)
 		return (NULL);
 
 	/* Open file containing the pub key */
-	sprintf(path, "%s/%s", folder, PUB_FILENAME);
+	sprintf(path, "%s/%s", folder, "key_pub.pem");
 	file = fopen(path, "r");
 	if (!file)
 	{
@@ -43,8 +43,8 @@ EC_KEY *ec_load(char const *folder)
 	/* Read the pub key */
 	if (!PEM_read_EC_PUBKEY(file, &key, NULL, NULL))
 	{
-		fclose(file);
 		EC_KEY_free(key);
+		fclose(file);
 		return (NULL);
 	}
 	fclose(file);
