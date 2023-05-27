@@ -13,19 +13,14 @@
 EC_KEY *ec_load(char const *folder)
 {
 	FILE *file;
-	EC_KEY *key;
+	EC_KEY *key = NULL;
 	char path[512];
 
 	if (!folder)
 		return (NULL);
 
-	/* Avoid potential buffer overflow */
-	if (strlen(folder) > sizeof(path) - strlen(PRI_FILENAME) -
-			strlen(PUB_FILENAME) - 2)
-		return (NULL);
-
 	/* Open file containing the priv key */
-	snprintf(path, sizeof(path), "%s/%s", folder, PRI_FILENAME);
+	sprintf(path, "%s/%s", folder, PRI_FILENAME);
 	file = fopen(path, "r");
 	if (!file)
 		return (NULL);
@@ -37,7 +32,7 @@ EC_KEY *ec_load(char const *folder)
 		return (NULL);
 
 	/* Open file containing the pub key */
-	snprintf(path, sizeof(path), "%s/%s", folder, PUB_FILENAME);
+	sprintf(path, "%s/%s", folder, PUB_FILENAME);
 	file = fopen(path, "r");
 	if (!file)
 	{
