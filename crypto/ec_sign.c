@@ -11,23 +11,24 @@
 uint8_t *ec_sign(EC_KEY const *key, uint8_t const *msg, size_t msglen,
 		sig_t *sig)
 {
-	uint8_t digest[SHA256_DIGEST_LENGTH];
-	unsigned int sig_len;
+	unsigned int len;
 
 	if (!key || !msg || !sig)
 		return (NULL);
 
-	/* Compute the hash of the message */
-	if (!SHA256(msg, msglen, digest))
+	/* Allocate memory for the signature */
+	sig->sig = malloc(ECDSA_size((EC_KEY *)key));
+	if (!sig->sig)
 		return (NULL);
 
 	/* Sign the message digest */
-	sig->len = SIG_MAX_LEN;
-	if (!ECDSA_sign(0, digest, SHA256_DIGEST_LENGTH, sig->sig, &sig_len,
-				(EC_KEY *)key))
+	if (!ECDSA_sign(0, msg, msglen, sig->sig, &len, (EC_KEY *)key))
+	{
+		free(sig->sig);
 		return (NULL);
+	}
 
-	sig->len = sig_len;
+	sig->len = len;
 
 	return (sig->sig);
 }
