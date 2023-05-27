@@ -24,6 +24,7 @@
  * struct sig_s - EC Signature structure
  *
  * @sig: Signature buffer. The whole space may not be used
+ * @_sig: Pointer instead of fixed sized array
  * @len: Actual signature size. Can't exceed SIG_MAX_LEN, therefore stored on a
  * byte
  */
@@ -33,9 +34,9 @@ typedef struct sig_s
 	* @sig must stay first, so we can directly use the structure as
 	* an array of char
 	*/
-	uint8_t 	sig[SIG_MAX_LEN];
-	uint8_t 	*_sig;
-	uint8_t 	len;
+	uint8_t		sig[SIG_MAX_LEN];
+	uint8_t		*_sig;
+	uint8_t		len;
 } sig_t;
 
 /* Prototypes */
