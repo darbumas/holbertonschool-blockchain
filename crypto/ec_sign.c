@@ -17,7 +17,7 @@ uint8_t *ec_sign(EC_KEY const *key, uint8_t const *msg, size_t msglen,
 		return (NULL);
 
 	/* Allocate memory for the signature */
-	sig->sig = malloc(ECDSA_size((EC_KEY *)key));
+	sig->_sig = malloc(ECDSA_size((EC_KEY *)key));
 	if (!sig->sig)
 		return (NULL);
 

@@ -33,8 +33,9 @@ typedef struct sig_s
 	* @sig must stay first, so we can directly use the structure as
 	* an array of char
 	*/
-	uint8_t     *sig;
-	uint8_t     len;
+	uint8_t 	sig[SIG_MAX_LEN];
+	uint8_t 	*_sig;
+	uint8_t 	len;
 } sig_t;
 
 /* Prototypes */
