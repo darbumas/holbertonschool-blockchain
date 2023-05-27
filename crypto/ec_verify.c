@@ -2,7 +2,8 @@
 
 /**
  * ec_verify - verify a message's signature
- * @key: points to the EC_KEY structure containing the public key to verify signature
+ * @key: points to the EC_KEY structure containing the public key to verify
+ * signature
  * @msg: points to characters to verify signature of
  * @msglen: number of characters
  * @sig: points to signature to be checked
