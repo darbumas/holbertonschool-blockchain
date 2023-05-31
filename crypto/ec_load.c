@@ -1,4 +1,5 @@
 #include <sys/stat.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <string.h>
 
@@ -16,7 +17,7 @@ EC_KEY *ec_load(char const *folder)
 	EC_KEY *key = NULL;
 	char path[512];
 
-	if (!folder)
+	if (access(folder, F_OK) != 0)
 		return (NULL);
 
 	/* Open file containing the priv key */
