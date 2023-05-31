@@ -13,15 +13,17 @@
  */
 EC_KEY *ec_load(char const *folder)
 {
-	FILE *file;
+	FILE *file = NULL;
 	EC_KEY *key = NULL;
-	char path[512];
+	char path[512] = {0};
 
+	if (!folder)
+		return (NULL);
 	if (access(folder, F_OK) != 0)
 		return (NULL);
 
 	/* Open file containing the priv key */
-	sprintf(path, "%s/%s", folder, "key.pem");
+	sprintf(path, "%s/%s", folder, PUB_FILENAME);
 	file = fopen(path, "r");
 	if (!file)
 		return (NULL);
@@ -33,7 +35,7 @@ EC_KEY *ec_load(char const *folder)
 		return (NULL);
 
 	/* Open file containing the pub key */
-	sprintf(path, "%s/%s", folder, "key_pub.pem");
+	sprintf(path, "%s/%s", folder, PRI_FILENAME);
 	file = fopen(path, "r");
 	if (!file)
 	{
