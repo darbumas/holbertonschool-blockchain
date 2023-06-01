@@ -22,27 +22,20 @@ EC_KEY *ec_load(char const *folder)
 
 	key = EC_KEY_new_by_curve_name(EC_CURVE);
 
-	/* Open file containing the priv key */
+	/* Open file containing the private key */
 	sprintf(path, "%s/%s", folder, PRI_FILENAME);
 	fp = fopen(path, "r");
+	if (!fp)
+	{
+		EC_KEY_free(key);
+		return (NULL);
+	}
 
 	/* Read the private key */
 	if (!PEM_read_ECPrivateKey(fp, &key, NULL, NULL))
 	{
 		fclose(fp);
 		EC_KEY_free(key);
-		return (NULL);
-	}
-
-	/* Open file containing the pub key */
-	sprintf(path, "%s/%s", folder, PUB_FILENAME);
-	fp = fopen(path, "r");
-
-	/* Read the pub key */
-	if (!PEM_read_EC_PUBKEY(fp, &key, NULL, NULL))
-	{
-		EC_KEY_free(key);
-		fclose(fp);
 		return (NULL);
 	}
 	fclose(fp);
