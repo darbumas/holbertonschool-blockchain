@@ -23,7 +23,7 @@ EC_KEY *ec_load(char const *folder)
 		return (NULL);
 
 	/* Open file containing the priv key */
-	sprintf(path, "%s/%s", folder, PUB_FILENAME);
+	sprintf(path, "%s/%s", folder, PRI_FILENAME);
 	file = fopen(path, "r");
 	if (!file)
 		return (NULL);
@@ -35,7 +35,7 @@ EC_KEY *ec_load(char const *folder)
 		return (NULL);
 
 	/* Open file containing the pub key */
-	sprintf(path, "%s/%s", folder, PRI_FILENAME);
+	sprintf(path, "%s/%s", folder, PUB_FILENAME);
 	file = fopen(path, "r");
 	if (!file)
 	{
