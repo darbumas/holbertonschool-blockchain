@@ -13,44 +13,39 @@
  */
 EC_KEY *ec_load(char const *folder)
 {
-	FILE *file = NULL;
+	FILE *fp = NULL;
 	EC_KEY *key = NULL;
 	char path[512] = {0};
 
-	if (!folder)
+	if (!folder || access(folder, F_OK) != 0)
 		return (NULL);
-	if (access(folder, F_OK) != 0)
-		return (NULL);
+
+	key = EC_KEY_new_by_curve_name(EC_CURVE);
 
 	/* Open file containing the priv key */
 	sprintf(path, "%s/%s", folder, PRI_FILENAME);
-	file = fopen(path, "r");
-	if (!file)
-		return (NULL);
+	fp = fopen(path, "r");
 
 	/* Read the private key */
-	key = PEM_read_ECPrivateKey(file, NULL, NULL, NULL);
-	fclose(file);
-	if (!key)
+	if (!PEM_read_ECPrivateKey(fp, &key, NULL, NULL))
+	{
+		fclose(fp);
+		EC_KEY_free(key);
 		return (NULL);
+	}
 
 	/* Open file containing the pub key */
 	sprintf(path, "%s/%s", folder, PUB_FILENAME);
-	file = fopen(path, "r");
-	if (!file)
-	{
-		EC_KEY_free(key);
-		return (NULL);
-	}
+	fp = fopen(path, "r");
 
 	/* Read the pub key */
-	if (!PEM_read_EC_PUBKEY(file, &key, NULL, NULL))
+	if (!PEM_read_EC_PUBKEY(fp, &key, NULL, NULL))
 	{
 		EC_KEY_free(key);
-		fclose(file);
+		fclose(fp);
 		return (NULL);
 	}
-	fclose(file);
+	fclose(fp);
 
 	return (key);
 }
