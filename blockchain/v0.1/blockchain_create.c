@@ -1,6 +1,40 @@
 #include "blockchain.h"
 
 /**
+ * char2int - Converts a hex character to its integer value
+ * @hex: hex character to be converted
+ *
+ * Return: integer value of the hex
+ */
+int char2int(char hex)
+{
+	if (hex >= '0' && hex <= '9')
+		return (hex - '0');
+	if (hex >= 'A' && hex <= 'F')
+		return (hex - 'A' + 10);
+	if (hex >= 'a' && hex <= 'f')
+		return (hex - 'a' + 10);
+	return (0);
+}
+
+/**
+ * hex2bin - Converts a hex string to byte data
+ * @src: source string in hexadecimal format
+ * @target: target byte array where the converted values will be stored
+ *
+ * Note: This function assumes that src has an even number length and target
+ * has enough space to store len(src)/2 bytes.
+ */
+void hex2bin(const char *src, uint8_t *target)
+{
+	while (*src && src[1])
+	{
+		*(target++) = char2int(*src) * 16 + char2int(src[1]);
+		src += 2;
+	}
+}
+
+/**
  * blockchain_create - Creates a blockchain structure and initializes it.
  *
  * Return: pointer to the created blockchain, otherwise NULL.
@@ -9,9 +43,8 @@ blockchain_t *blockchain_create(void)
 {
 	block_t *genesis_block;
 	char *genesis_data;
-	const char *genesis_hash;
+	char *genesis_hash;
 	blockchain_t *block;
-	size_t i = 0;
 
 	block = malloc(sizeof(blockchain_t));
 	if (!block)
@@ -37,9 +70,9 @@ blockchain_t *blockchain_create(void)
 	genesis_block->data.len = strlen(genesis_data);
 
 	/* Convert the string representation of the hash into bytes */
-	genesis_hash = "c52c26c8b5461639635d8edf2a97d48d0c8e0009c817f2b1d3d7ff2f04515803";
-	for (; i < SHA256_DIGEST_LENGTH; i++)
-		scanf(genesis_hash + i * 2, "%2hhx", &genesis_block->hash[i]);
+	genesis_hash =
+	"c52c26c8b5461639635d8edf2a97d48d0c8e0009c817f2b1d3d7ff2f04515803";
+	hex2bin(genesis_hash, genesis_block->hash);
 
 	/* Create a linked list for the blockchain's chain */
 	block->chain = llist_create(MT_SUPPORT_FALSE);
@@ -58,5 +91,4 @@ blockchain_t *blockchain_create(void)
 		return (NULL);
 	}
 	return (block);
-
 }
