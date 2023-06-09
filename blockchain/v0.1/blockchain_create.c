@@ -50,6 +50,14 @@ blockchain_t *blockchain_create(void)
 	if (!block)
 		return (NULL);
 
+	/* Create the linked list for the blockchain's chain */
+	block->chain = llist_create(MT_SUPPORT_FALSE);
+	if (!block->chain)
+	{
+		free(block);
+		return (NULL);
+	}
+
 	genesis_block = malloc(sizeof(block_t));
 	if (!genesis_block)
 	{
@@ -67,21 +75,13 @@ blockchain_t *blockchain_create(void)
 	/* Copy the data into the genesis block */
 	genesis_data = "Holberton School";
 	memcpy(genesis_block->data.buffer, genesis_data, strlen(genesis_data));
+	genesis_block->data.buffer[strlen(genesis_data)] = '\0';
 	genesis_block->data.len = strlen(genesis_data);
 
 	/* Convert the string representation of the hash into bytes */
 	genesis_hash =
 	"c52c26c8b5461639635d8edf2a97d48d0c8e0009c817f2b1d3d7ff2f04515803";
 	hex2bin(genesis_hash, genesis_block->hash);
-
-	/* Create a linked list for the blockchain's chain */
-	block->chain = llist_create(MT_SUPPORT_FALSE);
-	if (!block->chain)
-	{
-		free(genesis_block);
-		free(block);
-		return (NULL);
-	}
 
 	/* Add the genesis block to the blockchain's chain */
 	if (llist_add_node(block->chain, genesis_block, ADD_NODE_REAR) != 0)
