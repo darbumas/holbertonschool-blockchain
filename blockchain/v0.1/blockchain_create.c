@@ -45,23 +45,23 @@ blockchain_t *blockchain_create(void)
 	char *genesis_data = "Holberton School";
 	char *genesis_hash =
 	"c52c26c8b5461639635d8edf2a97d48d0c8e0009c817f2b1d3d7ff2f04515803";
-	blockchain_t *block = NULL;
+	blockchain_t *blockchain = NULL;
 
-	block = malloc(sizeof(blockchain_t));
-	if (!block)
+	blockchain = malloc(sizeof(blockchain_t));
+	if (!blockchain)
 		return (NULL);
 
-	block->chain = llist_create(MT_SUPPORT_FALSE);
-	if (!block->chain)
+	blockchain->chain = llist_create(MT_SUPPORT_FALSE);
+	if (!blockchain->chain)
 	{
-		free(block);
+		free(blockchain);
 		return (NULL);
 	}
 
 	genesis_block = malloc(sizeof(block_t));
 	if (!genesis_block)
 	{
-		free(block);
+		free(blockchain);
 		return (NULL);
 	}
 	memset(genesis_block, 0, sizeof(*genesis_block));
@@ -74,11 +74,11 @@ blockchain_t *blockchain_create(void)
 	genesis_block->data.buffer[strlen(genesis_data)] = '\0';
 	genesis_block->data.len = strlen(genesis_data);
 	hex2bin(genesis_hash, genesis_block->hash);
-	if (llist_add_node(block->chain, genesis_block, ADD_NODE_REAR) != 0)
+	if (llist_add_node(blockchain->chain, genesis_block, ADD_NODE_REAR) != 0)
 	{
-		llist_destroy(block->chain, 1, NULL);
-		free(block);
+		llist_destroy(blockchain->chain, 1, NULL);
+		free(blockchain);
 		return (NULL);
 	}
-	return (block);
+	return (blockchain);
 }
