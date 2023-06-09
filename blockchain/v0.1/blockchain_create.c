@@ -64,6 +64,9 @@ blockchain_t *blockchain_create(void)
 		free(block);
 		return (NULL);
 	}
+	/* Initialize all fields (debugging Valgrind conditional jump) */
+	/*memset(genesis_block->hash, 0, SHA256_DIGEST_LENGTH);*/
+	memset(genesis_block, 0, sizeof(*genesis_block));
 
 	/* Initialize the genesis block with static content */
 	genesis_block->info.index = 0;
