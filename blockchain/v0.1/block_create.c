@@ -12,7 +12,8 @@
  *
  * Return: pointer to the allocated Block
  */
-block_t *block_create(block_t const *prev, int8_t const *data, uint32_t data_len)
+block_t *block_create(block_t const *prev, int8_t const *data,
+		uint32_t data_len)
 {
 	block_t *block = NULL;
 	uint32_t data_len_cpy =
