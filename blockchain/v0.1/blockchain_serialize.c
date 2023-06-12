@@ -15,7 +15,7 @@ int blockchain_serialize(blockchain_t const *blockchain, char const *path)
 	int8_t buffer[BLOCKCHAIN_DATA_MAX];
 
 	if (blockchain == NULL || path == NULL)
-		return -1;
+		return (-1);
 
 	num_blocks = llist_size(blockchain->chain);
 	fp = fopen(path, "w");
@@ -48,5 +48,5 @@ int blockchain_serialize(blockchain_t const *blockchain, char const *path)
 	}
 
 	fclose(fp);
-	return 0;
+	return (0);
 }
