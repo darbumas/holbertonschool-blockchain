@@ -15,6 +15,9 @@ uint8_t *block_hash(block_t const *block,
 
 	/* Prepare a temp block_info that has zeroed hash field */
 	tmp_block = *block;
+
+	/* Zero out entire temp block structure (debugging valgrind) */
+	memset(&tmp_block, 0, sizeof(block_t));
 	memset(tmp_block.hash, 0, SHA256_DIGEST_LENGTH);
 
 	SHA256_Init(&sha256);
