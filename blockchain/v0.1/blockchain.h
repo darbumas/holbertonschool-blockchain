@@ -8,6 +8,10 @@
 #include <llist.h>
 #include <openssl/sha.h>
 
+#define HBLK_MAGIC "HBLK"
+#define HBLK_VERSION "1.0"
+#define HBLK_LITTLE_ENDIAN 1
+#define HBLK_BIG_ENDIAN 2
 /**
  * struct blockchain_s - Blockchain structure
  *
@@ -76,6 +80,7 @@ typedef struct block_s
 	block_info_t	info; /* This must stay first */
 	block_data_t	data; /* This must stay second */
 	uint8_t		hash[SHA256_DIGEST_LENGTH];
+	struct block_s 	*next;
 } block_t;
 
 
