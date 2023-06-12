@@ -14,13 +14,14 @@ int blockchain_serialize(blockchain_t const *blockchain, char const *path)
 	uint8_t endianness;
 	int8_t buffer[BLOCKCHAIN_DATA_MAX];
 
-	if (blockchain == NULL || path == NULL)
+	if (!blockchain || !path)
 		return (-1);
 
 	num_blocks = llist_size(blockchain->chain);
 	fp = fopen(path, "w");
-	if (fp == NULL)
+	if (!fp)
 		return (-1);
+
 	/* Write file header */
 	fwrite(HBLK_MAGIC, strlen(HBLK_MAGIC), 1, fp);
 	fwrite(HBLK_VERSION, strlen(HBLK_VERSION), 1, fp);
@@ -29,9 +30,9 @@ int blockchain_serialize(blockchain_t const *blockchain, char const *path)
 	fwrite(&num_blocks, sizeof(num_blocks), 1, fp);
 
 	/* Serialize each block */
-	block = llist_get_head(blockchain->chain);
-	for (i = 0; i < num_blocks && block != NULL; i++)
+	for (i = 0; i < num_blocks; i++)
 	{
+		block = llist_get_node_at(blockchain->chain, i);
 		/* Serialize block info */
 		fwrite(&block->info, sizeof(block_info_t), 1, fp);
 
@@ -43,8 +44,6 @@ int blockchain_serialize(blockchain_t const *blockchain, char const *path)
 
 		/* Serialize block hash */
 		fwrite(block->hash, SHA256_DIGEST_LENGTH, 1, fp);
-
-		block = block->next;
 	}
 
 	fclose(fp);
