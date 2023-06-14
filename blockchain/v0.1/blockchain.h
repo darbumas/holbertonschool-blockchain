@@ -7,11 +7,64 @@
 #include <string.h>
 #include <llist.h>
 #include <openssl/sha.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #define HBLK_MAGIC "HBLK"
+#define HBLK_MAGIC_LEN 4
 #define HBLK_VERSION "1.0"
+#define HBLK_VERSION_LEN 3
 #define HBLK_LITTLE_ENDIAN 1
 #define HBLK_BIG_ENDIAN 2
+
+#define GENESIS_TS 1537578000
+#define GENESIS_DATA "Holberton School"
+#define GENENIS_DAT_LEN 16
+#define GENESIS_HASH \
+	"\xc5\x2c\x26\xc8\xb5\x46\x16\x39\x63\x5d\x8e\xdf\x2a\x97\xd4\x8d" \
+	"\x0c\x8e\x00\x09\xc8\x17\xf2\xb1\xd3\xd7\xff\x2f\x04\x51\x58\x03"
+
+#define GENESIS_BLK { \
+	{ /* Info */ \
+		0, /* index */ \
+		0, /* difficulty */ \
+		1537578000, /* timestamp */ \
+		0, /* nonce */ \
+		{0} /* prev_hash */ \
+	}, \
+	{ /* data */ \
+		"Holberton School", /* buffer */ \
+		16 /* length */ \
+	}, /* hash */ \
+	"\xc5\x2c\x26\xc8\xb5\x46\x16\x39\x63\x5d\x8e\xdf\x2a\x97\xd4\x8d" \
+	"\x0c\x8e\x00\x09\xc8\x17\xf2\xb1\xd3\xd7\xff\x2f\x04\x51\x58\x03" \
+}
+
+/*
+ * sizeof(block_t.info) + sizeof(block_t.data.len) +
+ * GENESIS_BLK.data.len + sizeof(block_t.hash)
+ */
+#define GEN_BLK_SERIAL_SZ 108
+
+/**
+ * struct hblk_file_hdr_s - file header of the blockchain structure
+ * @hblk_magic: Identifies the file as a valid serialized blockchain format;
+ * "HBLK" (ASCII 48 42 4c 4b); these four bytes constitute the magic number
+ * @hblk_version: Identifies the version at which the blockchain has been
+ *   serialized. The format is X.Y, where both X and Y are ASCII characters
+ *   between 0 and 9
+ * @hblk_endian: This byte is set to either 1 or 2 to signify little or big
+ *   endianness, respectively. This affects interpretation of multi-byte fields
+ * @hblk_blocks: Number of blocks in the blockchain
+ */
+typedef struct hblk_file_hdr_s
+{
+	int8_t		hblk_magic[4];
+	int8_t		hblk_version[3];
+	uint8_t		hblk_endian;
+	uint32_t	hblk_blocks;
+} hblk_file_hdr_t;
+
 /**
  * struct blockchain_s - Blockchain structure
  *
@@ -85,6 +138,7 @@ typedef struct block_s
 
 /* ƒ() prototypes */
 blockchain_t *blockchain_create(void);
+char *strE_LLIST(E_LLIST code);
 block_t *block_create(block_t const *prev, int8_t const *data,
 		uint32_t data_len);
 void block_destroy(block_t *block);
