@@ -1,6 +1,32 @@
 #include "blockchain.h"
 
 /**
+ * strE_LLIST - returns error description corresponding to llist_errno value
+ * @code: llist shared library llist_errno value
+ *
+ * Return: llist error description as string, or generic message on failure
+ */
+char *strE_LLIST(E_LLIST code)
+{
+	switch (code)
+	{
+		case LLIST_SUCCESS:
+			return ("success");
+		case LLIST_NODE_NOT_FOUND:
+			return ("node not found");
+		case LLIST_NULL_ARGUMENT:
+			return ("NULL paraeter(s)");
+		case LLIST_OUT_OF_RANGE:
+			return ("out of range");
+		case LLIST_MALLOC_ERROR:
+			return ("malloc error");
+		case LLIST_MULTITHREAD_ISSUE:
+			return ("multithreading issue");
+		default:
+			return ("(unknown error code)");
+	}
+}
+/**
  * char2int - Converts a hex character to its integer value
  * @hex: hex character to be converted
  *
