@@ -136,14 +136,9 @@ int deserialize_blocks(int fd, const blockchain_t *blockchain,
 	uint32_t i;
 	block_t *block;
 
-	if (!blockchain)
+	if (!blockchain || !llist_is_empty(blockchain->chain))
 	{
-		fprintf(stderr, "deserialize_blocks: NULL parameter\n");
-		return (1);
-	}
-	if (!llist_is_empty(blockchain->chain))
-	{
-		fprintf(stderr, "deserialize_blocks: blockain not empty\n");
+		fprintf(stderr, "deserialize_blocks: NULL paramete or empy\n");
 		return (1);
 	}
 	for (i = 0; i < blocks; i++)
