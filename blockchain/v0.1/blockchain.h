@@ -12,7 +12,7 @@
 
 #define HBLK_MAGIC "HBLK"
 #define HBLK_MAGIC_LEN 4
-#define HBLK_VERSION "1.0"
+#define HBLK_VERSION "0.1"
 #define HBLK_VERSION_LEN 3
 #define HBLK_LITTLE_ENDIAN 1
 #define HBLK_BIG_ENDIAN 2
