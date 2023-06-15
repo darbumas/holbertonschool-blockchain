@@ -25,7 +25,7 @@ int path_validate(char const *path)
 			GEN_BLK_SERIAL_SZ)
 	{
 		fprintf(stderr, "path_validate: %s\n",
-				"file is small to contain header and Genesis");
+			"file is too small to contain a valid blockchain");
 		return (-1);
 	}
 	fd = open(path, O_RDONLY);
