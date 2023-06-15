@@ -1,9 +1,10 @@
 #include "blockchain.h"
 
+
 /**
  * block_is_valid - verifies that a Block is valid
  * @block: points to the Block to check
- * @prev_block: points to the previous Block in the Blockchain, or NULL if 
+ * @prev_block: points to the previous Block in the Blockchain, or NULL if
  * `block` is the first Block of the chain.
  *
  * Return: 0 if Block is valid, or -1 if NOT
@@ -11,6 +12,7 @@
 int block_is_valid(block_t const *block, block_t const *prev_block)
 {
 	uint8_t expected_hash[SHA256_DIGEST_LENGTH];
+	block_t genesis_block = GENESIS_BLK;
 
 	/* check for NULL block or illegal data length */
 	if (!block || block->data.len > BLOCKCHAIN_DATA_MAX ||
@@ -20,7 +22,7 @@ int block_is_valid(block_t const *block, block_t const *prev_block)
 	/* check for genesis block */
 	if (block->info.index == 0)
 	{
-		if (prev_block || memcmp(block, &GENESIS_BLK,
+		if (prev_block || memcmp(block, &genesis_block,
 					sizeof(block_t)) != 0)
 			return (-1);
 	}
