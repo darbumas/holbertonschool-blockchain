@@ -15,13 +15,18 @@ int hash_matches_difficulty(uint8_t const hash[SHA256_DIGEST_LENGTH],
 	uint8_t i;
 	uint8_t mask = 0xff;
 
+	/* loop through the first difficulty / 8 bytes of the hash */
 	for (i = 0; i < difficulty / 8; i++)
 	{
+		/* If any of these bytes NOT zero, return 0 */
 		if (hash[i] != 0)
 			return (0);
 	}
 
+	/* create mask with difficulty % 8 leading 1 bits */
 	mask <<= 8 - difficulty % 8;
+
+	/* check if the next hash byte ANDed with the mask is non-zero */
 	if ((hash[i] & mask) != 0)
 		return (0);
 
