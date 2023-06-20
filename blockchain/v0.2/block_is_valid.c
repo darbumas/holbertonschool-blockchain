@@ -10,7 +10,7 @@
  */
 int block_is_valid(block_t const *block, block_t const *prev_block)
 {
-	uint8_t expected_hash[SHA256_DIGEST_LENGTH];
+	uint8_t hash[SHA256_DIGEST_LENGTH];
 	size_t i;
 
 	if (!block || !prev_block)
