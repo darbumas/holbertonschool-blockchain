@@ -8,17 +8,15 @@
  */
 void block_mine(block_t *block)
 {
-	uint8_t nonce = 0;
-
-	if (!block)
+	if (!block || block->info.difficulty == 0)
 		return;
 
-	/* Loop until a hash is found that matches the difficulty */
-	do {
-		/* Increment nonce */
-		block->info.nonce = nonce;
-		/* Compute hash of block content */
+	block->info.nonce = 0;
+
+	block_hash(block, block->hash);
+	while (!hash_matches_difficulty(block->hash, block->info.difficulty))
+	{
+		block->info.nonce += 1;
 		block_hash(block, block->hash);
-		nonce++;
-	} while (!hash_matches_difficulty(block->hash, block->difficulty));
+	}
 }
