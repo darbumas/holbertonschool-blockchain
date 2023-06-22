@@ -46,6 +46,10 @@
  */
 #define GEN_BLK_SERIAL_SZ 108
 
+/* Adjusting difficulty */
+#define BLOCK_GENERATION_INTERVAL 1
+#define DIFFICULTY_ADJUSTMENT_INTERVAL 5
+
 /**
  * struct hblk_file_hdr_s - file header of the blockchain structure
  * @hblk_magic: Identifies the file as a valid serialized blockchain format;
