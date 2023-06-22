@@ -11,6 +11,7 @@
 int block_is_valid(block_t const *block, block_t const *prev_block)
 {
 	uint8_t expected_hash[SHA256_DIGEST_LENGTH];
+	uint8_t prev_block_hash[SHA256_DIGEST_LENGTH];
 	block_t genesis_block = GENESIS_BLK;
 
 	/* check for NULL block or illegal data length */
@@ -32,6 +33,11 @@ int block_is_valid(block_t const *block, block_t const *prev_block)
 			return (-1);
 	/* check if the prev_block's hash matches the reference in block */
 		if (memcmp(prev_block->hash, block->info.prev_hash,
+					SHA256_DIGEST_LENGTH) != 0)
+			return (-1);
+	/* compute and check prev_block's hash to detect tampering */
+		block_hash(prev_block, prev_block_hash);
+		if (memcmp(prev_block_hash, prev_block->hash,
 					SHA256_DIGEST_LENGTH) != 0)
 			return (-1);
 	}
