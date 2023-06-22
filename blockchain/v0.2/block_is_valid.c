@@ -10,28 +10,43 @@
  */
 int block_is_valid(block_t const *block, block_t const *prev_block)
 {
-	uint8_t hash[SHA256_DIGEST_LENGTH];
-	size_t i;
+	uint8_t expected_hash[SHA256_DIGEST_LENGTH];
+	block_t genesis_block = GENESIS_BLK;
 
-	if (!block || !prev_block)
+	/* check for NULL block or illegal data length */
+	if (!block || block->data.len > BLOCKCHAIN_DATA_MAX ||
+			block->data.len == 0)
 		return (-1);
 
-	/* check if hash matches difficulty (leading 0s) */
-	block_hash(block, hash);
-	for (i = 0; i < block->info.difficulty; i++)
+	/* check for genesis block */
+	if (block->info.index == 0)
 	{
-		if (hash[i] != 0)
+		if (prev_block || memcmp(block, &genesis_block,
+					sizeof(block_t)) != 0)
+			return (-1);
+	}
+	else
+	{ /* check for NULL prev_block or incorrect index */
+		if (!prev_block || block->info.index !=
+				prev_block->info.index + 1)
+			return (-1);
+	/* check if the prev_block's hash matches the reference in block */
+		if (memcmp(prev_block->hash, block->info.prev_hash,
+					SHA256_DIGEST_LENGTH) != 0)
 			return (-1);
 	}
 
-	/* check if prev_hash matches */
-	if (memcmp(block->info.prev_hash, prev_block->hash, SHA256_DIGEST_LENGTH)
-			!= 0)
+	/* check if block's hash matches the expected one */
+	block_hash(block, expected_hash);
+	if (memcmp(expected_hash, block->hash, SHA256_DIGEST_LENGTH) != 0)
 		return (-1);
 
-	/* check if index matches */
-	if (block->info.index != prev_block->info.index + 1)
+	if (!hash_matches_difficulty(block->hash, block->info.difficulty))
 		return (-1);
+
+	return (0);
+
+	/* TODO: Add verification of block and timestamp if needed */
 
 	return (0);
 }
