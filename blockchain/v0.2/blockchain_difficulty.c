@@ -28,7 +28,7 @@ uint32_t blockchain_difficulty(blockchain_t const *blockchain)
 
 	/* Get the block at which the last diff. adjustment was made */
 	adjusted_block = llist_get_node_at(blockchain->chain,
-		last_block->info.index - DIFFICULTY_ADJUSTMENT_INTERVAL);
+		last_block->info.index - DIFFICULTY_ADJUSTMENT_INTERVAL + 1);
 	if (!adjusted_block)
 		return (0);
 
