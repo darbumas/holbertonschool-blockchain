@@ -7,11 +7,11 @@
  *
  *  Return: Pointer to created transaction output, or NULL upon failure
  */
-tx_out_t *tx_out_create(uint32_t amount, uint8_t const pub[EC_PUB_LEN])
+transaction_t *tx_out_create(uint32_t amount, uint8_t const pub[EC_PUB_LEN])
 {
-	tx_out_t *trxn = NULL;
+	transaction_t *trxn = NULL;
 
-	trxn = calloc(1, sizeof(tx_out_t));
+	trxn = calloc(1, sizeof(transaction_t));
 
 	if (!trxn)
 		return (NULL);
