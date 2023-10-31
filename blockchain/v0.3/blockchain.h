@@ -129,7 +129,7 @@ typedef struct block_data_s
 } block_data_t;
 
 /**
- * block_s - Block structure
+ * struct block_s - Block structure
  *
  * @info:         Block info
  * @data:         Block data
