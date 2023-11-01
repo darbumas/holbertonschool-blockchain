@@ -73,10 +73,12 @@ typedef struct hblk_file_hdr_s
  * struct blockchain_s - Blockchain structure
  *
  * @chain: Linked list of pointers to block_t
+ * @unspent: Linked list of unspent transaction outputs
  */
 typedef struct blockchain_s
 {
 	llist_t		*chain;
+	llist_t		*unspent;
 } blockchain_t;
 
 /**
@@ -130,12 +132,14 @@ typedef struct block_data_s
  *
  * @info: Block info
  * @data: Block data
+ * @transactions: List of transactions
  * @hash: 256-bit digest of the Block, to ensure authenticity
  */
 typedef struct block_s
 {
 	block_info_t	info; /* This must stay first */
 	block_data_t	data; /* This must stay second */
+	llist_t		*transactions;
 	uint8_t		hash[SHA256_DIGEST_LENGTH];
 } block_t;
 
