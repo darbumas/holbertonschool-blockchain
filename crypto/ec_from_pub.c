@@ -2,9 +2,9 @@
 
 /**
  * ec_from_pub - Creates a EC_KEY structure given a public key
- * @pub: contains the public key to be converted
+ * @pub: Contains the public key to be converted
  *
- * Return: pointer the created EC_KEY structure, othewise NULL
+ * Return: A pointer the created EC_KEY structure, othewise NULL
  */
 EC_KEY *ec_from_pub(uint8_t const pub[EC_PUB_LEN])
 {

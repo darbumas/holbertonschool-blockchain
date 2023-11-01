@@ -2,8 +2,8 @@
 
 /**
  * ec_to_pub - Extracts the public key from an EC_KEY opaque structure
- * @key: pointer to the EC_KEY structure to retrieve the key from
- * @pub: address at which to store the extracted public key
+ * @key: Pointer to the EC_KEY structure to retrieve the key from
+ * @pub: Address at which to store the extracted public key
  * Return: Pointer to pub, otherwise NULL
  */
 

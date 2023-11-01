@@ -5,8 +5,8 @@
 
 /**
  * ec_save - Saves and existing EC key pair on the disk
- * @key: pointer to the EC key pair to be saved on disk
- * @folder: path to the folder in which to save the keys
+ * @key: Pointer to the EC key pair to be saved on disk
+ * @folder: Path to the folder in which to save the keys
  * Return: 1 upon success, 0 on failure
  */
 int ec_save(EC_KEY *key, char const *folder)
