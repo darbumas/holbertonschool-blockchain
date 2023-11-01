@@ -10,6 +10,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "transaction/transaction.h"
+
 #define HBLK_MAGIC "HBLK"
 #define HBLK_MAGIC_LEN 4
 #define HBLK_VERSION "0.3"
