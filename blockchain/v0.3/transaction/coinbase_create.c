@@ -11,6 +11,7 @@ transaction_t *coinbase_create(EC_KEY const *receiver, uint32_t block_index)
 	tx_in_t *input;
 	tx_out_t *output;
 	transaction_t *coinbase_tx = malloc(sizeof(transaction_t));
+	uint8_t pub[EC_PUB_LEN];
 
 	if (coinbase_tx == NULL)
 	return NULL;
@@ -35,7 +36,7 @@ transaction_t *coinbase_create(EC_KEY const *receiver, uint32_t block_index)
 	llist_add_node(coinbase_tx->inputs, input, ADD_NODE_REAR);
 
 	/* Create a transaction output */
-	output = tx_out_create(COINBASE_AMOUNT, (const uint8_t *)receiver);
+	output = tx_out_create(COINBASE_AMOUNT, ec_to_pub(receiver, pub));
 	if (!output)
 	{
 		fprintf(stderr, "coinbase_create: failed to create tx_out\n");
