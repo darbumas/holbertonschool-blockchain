@@ -1,134 +1,156 @@
 #include "../blockchain.h"
 
 /**
- * transaction_init - initialize transaction structure
- *
- * Return: pointer to transaction structure
- */
-transaction_t *transaction_init(void)
+* select_unspent - Selects unspent transactions belonging to address
+*
+* @node:	current node in @utxo
+* @i:		current index of @node
+* @args:	arguments passed to the callback function
+*		args[0] = uint8_t pub[EC_PUB_LEN]
+*		args[1] = llist_t *inputs
+*		args[2] = uint32_t *amount
+* Return: 0 on success, 1 on failure
+*/
+int select_unspent(llist_node_t node, unsigned int i, void *args)
 {
-	transaction_t *tx = calloc(1, sizeof(*tx));
+	unspent_tx_out_t *unspent = node;
+	void **ptr = args;
+	tx_in_t *tx_in;
+	llist_t *inputs = ptr[1];
+	uint32_t *amount = ptr[2];
 
-	if (!tx)
+	(void)i;
+
+	/* Create tx_in for each unspent transaction */
+	if (!memcmp(unspent->out.pub, ptr[0], EC_PUB_LEN))
 	{
-		fprintf(stderr, "transaction_init: calloc failed\n");
-		return (NULL);
+		tx_in = tx_in_create(unspent);
+		llist_add_node(inputs, tx_in, ADD_NODE_REAR);
+		*amount += unspent->out.amount;
+	}
+	return (0);
+}
+
+/**
+* sign_current_tx - Signs current transaction input
+* @node:	current node in @inputs
+* @i:		index of @node
+* @args:	arguments:
+*		args[0] = int8_t const tx_id[SHA256_DIGEST_LENGTH]
+*		args[1] = EC_KEY const *sender
+*		args[2] = llist_t *all_unspent
+* Return: 0 on success, 1 on failure
+*/
+int sign_current_tx(llist_node_t node, unsigned int i, void *args)
+{
+	void **ptr = args;
+	tx_in_t *tx_in = node;
+
+	(void)i;
+
+	/* Sign transaction input */
+	if (!tx_in_sign(tx_in, ptr[0], ptr[1], ptr[2]))
+	{
+		fprintf(stderr, "sign_current_tx: tx_in_sign failed\n");
+		return (1);
 	}
 
-	tx->inputs = llist_create(MT_SUPPORT_FALSE);
-	tx->outputs = llist_create(MT_SUPPORT_FALSE);
-	if (!tx->inputs || !tx->outputs)
+	return (0);
+}
+
+/**
+ * create_outputs - Creates outputs for transaction. If change remains,
+ * it is sent back to sender
+ * @sender: sender's private key
+ * @receiver: receiver's public key
+ * @amount: amount to send to @receiver
+ * @total: total amount of selected unspent transactions
+ * Return: a new list of outputs or NULL on failure
+*/
+llist_t *create_outputs(EC_KEY const *sender, EC_KEY const *receiver,
+			uint32_t amount, uint32_t total)
+{
+	llist_t *outputs;
+	tx_out_t *tx_out;
+	uint8_t pub[EC_PUB_LEN];
+
+	/* Create transaction output for receiver */
+	ec_to_pub(receiver, pub);
+	tx_out = tx_out_create(amount, pub);
+	if (!tx_out)
 	{
-		fprintf(stderr, "transaction_init: llist_create failed\n");
-		llist_destroy(tx->inputs, 0, NULL);
-		llist_destroy(tx->outputs, 0, NULL);
+		fprintf(stderr, "create_outputs: tx_out_create failed\n");
+		return (NULL);
+	}
+	outputs = llist_create(MT_SUPPORT_FALSE);
+	llist_add_node(outputs, tx_out, ADD_NODE_REAR);
+
+	/* Create transaction output for sender if total exceeds amount */
+	if (total > amount)
+	{
+		fprintf(stderr, "sending change...\n");
+		ec_to_pub(sender, pub);
+		tx_out = tx_out_create(total - amount, pub);
+		if (!tx_out)
+		{
+			fprintf(stderr, "create_outputs: tx_out_create fail\n");
+			return (NULL);
+		}
+		llist_add_node(outputs, tx_out, ADD_NODE_REAR);
+	}
+	fprintf(stderr, "create_outputs: success\n");
+
+	return (outputs);
+}
+
+/**
+* transaction_create - creates a transaction
+* @sender: contains the private key of the transaction sender
+* @receiver: contains the public key of the transaction receiver
+* @amount: amount to send to @receiver
+* @all_unspent: all unspent transactions, balance of @sender
+* Return: pointer to the created transaction upon success, or NULL
+*/
+transaction_t *transaction_create(EC_KEY const *sender,
+	EC_KEY const *receiver, uint32_t amount, llist_t *all_unspent)
+{
+	uint8_t sender_pub[EC_PUB_LEN];
+	uint32_t unspent = 0;
+	transaction_t *tx;
+	llist_t *tx_in, *tx_out;
+	void *args[3];
+
+	if (!sender || !receiver || !all_unspent)
+		return (NULL);
+	/* Init transaction */
+	tx = calloc(1, sizeof(*tx));
+	if (!tx)
+		return (NULL);
+
+	/* Create transaction inputs (step: 1-3) */
+	tx_in = llist_create(MT_SUPPORT_FALSE);
+	ec_to_pub(sender, sender_pub);
+	args[0] = sender_pub, args[1] = tx_in, args[2] = &unspent;
+	llist_for_each(all_unspent, select_unspent, args);
+	if (unspent < amount)
+	{
+		fprintf(stderr, "transaction_create: insufficient funds\n");
+		llist_destroy(tx_in, 1, NULL);
 		free(tx);
 		return (NULL);
 	}
-
-	return (tx);
-}
-
-/**
- * select_unspent - select unspent transaction outputs
- *
- * @inputs: list of input transactions
- * @all_unspent: list of all unspent transaction outputs
- * @amount: amount needed
- * @sender_pub: public key of transaction sender
- * Return: total amount of selected unspent transaction outputs or 0
- */
-uint32_t select_unspent(llist_t *inputs, llist_t *all_unspent, uint32_t amount,
-		uint8_t sender_pub[EC_PUB_LEN])
-{
-	unspent_tx_out_t *utx_out = NULL;
-	tx_in_t *txi = NULL;
-	int i = 0;
-	uint32_t total_selected = 0;
-
-	for (; i < llist_size(all_unspent); i++)
+	/* Create transaction outputs (step: 4-5) */
+	tx_out = create_outputs(sender, receiver, amount, unspent);
+	if (!tx_out)
 	{
-		utx_out = llist_get_node_at(all_unspent, i);
-
-		/* check if utx is unspent and belongs to sender */
-		if (memcmp(utx_out->out.pub, sender_pub, EC_PUB_LEN) == 0)
-		{
-			/* Create a tx input with each unspent output */
-			txi = tx_in_create(utx_out);
-			/* Add tx input to inputs list */
-			llist_add_node(inputs, txi, ADD_NODE_REAR);
-			total_selected += utx_out->out.amount;
-			if (total_selected >= amount)
-				break;
-		}
-	}
-	return (total_selected);
-}
-
-/**
- * clean_up - clean up transaction structure
- * @tx: transaction structure to clean up
- * Return: Always NULL
- */
-transaction_t *clean_up(transaction_t *tx)
-{
-	if (tx->inputs)
-		llist_destroy(tx->inputs, 0, free);
-	if (tx->outputs)
-		llist_destroy(tx->outputs, 0, free);
-	free(tx);
-	return (NULL);
-}
-
-/**
- * transaction_create - create a transaction
- *
- * @sender: private key of transaction sender
- * @receiver: public key of transaction receiver
- * @amount: amount to send
- * @all_unspent: list of all unspent transaction outputs
- * Return: pointer to transaction structure or NULL
- */
-transaction_t *transaction_create(EC_KEY const *sender,
-		EC_KEY const *receiver, uint32_t amount, llist_t *all_unspent)
-{
-	transaction_t *tx = NULL;
-	tx_out_t *txo = NULL;
-	tx_in_t *txi = NULL;
-	ssize_t i = 0;
-	uint8_t key_in[EC_PUB_LEN] = {0}, key_out[EC_PUB_LEN] = {0};
-	uint32_t total_selected = 0;
-
-	if (!sender || !receiver || !all_unspent)
-	{
-		fprintf(stderr, "transaction_create: NULL parameter\n");
+		llist_destroy(tx_in, 1, NULL);
+		free(tx);
 		return (NULL);
 	}
-	ec_to_pub(sender, key_in);
-	ec_to_pub(receiver, key_out);
-	tx = transaction_init();
-	if (!tx)
-		return (NULL);
-	if (select_unspent(tx->inputs, all_unspent, amount, key_in) < amount)
-		return (clean_up(tx));
-	txo = tx_out_create(amount, key_out);
-	if (!txo)
-		return (clean_up(tx));
-	llist_add_node(tx->outputs, txo, ADD_NODE_REAR);
-	if (total_selected > amount)
-	{
-		txo = tx_out_create(total_selected - amount, key_in);
-		if (!txo)
-			return (clean_up(tx));
-		llist_add_node(tx->outputs, txo, ADD_NODE_REAR);
-	}
+	tx->inputs = tx_in, tx->outputs = tx_out;
+	/* Compute transaction ID and sign transaction (step: 6-7) */
 	transaction_hash(tx, tx->id);
-	/* sign transaction input with sender's private key */
-	for (i = 0; i < llist_size(tx->inputs); i++)
-	{
-		txi = llist_get_node_at(tx->inputs, i);
-		if (!tx_in_sign(txi, tx->id, sender, all_unspent))
-			return (clean_up(tx));
-	}
+	args[0] = tx->id, args[1] = (void *)sender, args[2] = all_unspent;
+	llist_for_each(tx->inputs, sign_current_tx, args);
 	return (tx);
 }
