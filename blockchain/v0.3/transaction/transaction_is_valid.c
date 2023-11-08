@@ -1,92 +1,111 @@
 #include "../blockchain.h"
 
 /**
- * find_unspent1 - finds an unspent transaction output by input
- * @input: points to the transaction input to verify
- * @all_unspent: is the list of all unspent transaction outputs to date
- * Return: a pointer to the unspent transaction output
+ * find_unspent_tx_out - Callback to validate the inputs of a transaction by
+ * finding the corresponding unspent transaction output.
+ * @node:	current node (unspent tx output) being checked.
+ * @index:	index of @node
+ * @args:	arguments: arg[0] is list of txi, arg[1] is balance
+ *			arg[2] is index of @node, arg[3] is tx_ID
+ * Return:	0 on success, 1 on failure
  */
-unspent_tx_out_t *find_unspent1(tx_in_t const *input, llist_t *all_unspent)
+int find_unspent_tx_out(llist_node_t node, unsigned int index, void *args)
 {
-	/*
-	 * Implement a search in the 'all_unspent' list to find the unspent
-	 * output based on the input's block_hash, tx_id, and tx_out_hash.
-	 */
-	ssize_t i;
-	unspent_tx_out_t *utxo = NULL;
+	unspent_tx_out_t *unspent = node;
+	void **ptr = args;
+	llist_t *list = ptr[0];
+	uint32_t *in_idx = ptr[2], *balance = ptr[1];
+	tx_in_t *tx_in = llist_get_node_at(list, *in_idx);
+	EC_KEY *key;
 
-	for (i = 0; i < llist_size(all_unspent); i++)
+	(void)index;
+	if (!tx_in)
 	{
-		utxo = llist_get_node_at(all_unspent, i);
-		if (!memcmp(input->block_hash, utxo->block_hash,
-					SHA256_DIGEST_LENGTH) &&
-			!memcmp(input->tx_id, utxo->tx_id, SHA256_DIGEST_LENGTH)
-			&& !memcmp(input->tx_out_hash, utxo->out.hash,
-				SHA256_DIGEST_LENGTH))
-			return (utxo);
+		fprintf(stderr, "find_unspent_tx_out: tx_in is NULL\n");
+		return (1);
 	}
 
-	return (NULL);
+	/* check if tx_in->tx_out_hash matches unspent->out.hash */
+	if (!memcmp(unspent->out.hash, tx_in->tx_out_hash,
+				SHA256_DIGEST_LENGTH))
+	{
+		*in_idx += 1;
+		*balance += unspent->out.amount;
+		key = ec_from_pub(unspent->out.pub);
+		if (!key)
+			return (1);
+
+		/* verify signature */
+		if (!ec_verify(key, ptr[3], SHA256_DIGEST_LENGTH, &tx_in->sig))
+		{
+			EC_KEY_free(key);
+			return (1);
+		}
+		EC_KEY_free(key);
+	}
+	return (0);
 }
 
 /**
- * transaction_is_valid - verifies that a transaction is valid
- * @transaction: points to the transaction to verify
- * @all_unspent: is the list of all unspent transaction outputs to date
- * Return: 1 if valid transaction, 0 otherwise
- */
+* validate_txs - Callback to validate total input amount matches or exceeds
+* total output amount.
+* @node: current node
+* @index: index of @node (unused)
+* @arg: pointer to the running total input amount
+* Return: 0 on success, 1 on failure
+*/
+int validate_txs(llist_node_t node, unsigned int index, void *arg)
+{
+	uint32_t *balance = arg;
+	tx_out_t *out = node;
+	(void)index;
+
+	/* Check if running total input is less than current output amount*/
+	if (*balance < out->amount)
+	{
+		fprintf(stderr, "validate_txs: balance < out->amount\n");
+		return (1);
+	}
+	/* Subtract current output amount from running total input */
+	*balance -= out->amount;
+
+	return (0);
+}
+
+/**
+* transaction_is_valid - validate transaction
+* @transaction: transaction to be validated
+* @all_unspent: unpspent outputs
+* Return: 1 if valid, 0 otherwise
+*/
 int transaction_is_valid(transaction_t const *transaction,
 		llist_t *all_unspent)
 {
-	uint8_t computed_hash[SHA256_DIGEST_LENGTH];
-	uint32_t tot_in = 0, tot_out = 0;
-	ssize_t i;
-	tx_in_t *txi = NULL;
-	unspent_tx_out_t *utxo = NULL;
+	uint8_t hash_buf[SHA256_DIGEST_LENGTH];
+	void *args[4];
+	uint32_t i = 0;
+	uint32_t total_input = 0;
 
 	if (!transaction || !all_unspent)
 		return (0);
-
-	/* Compute hash */
-	if (!transaction_hash(transaction, computed_hash))
-		return (0);
-	/* Validate tx inputs */
-	if (memcmp(computed_hash, transaction->id, SHA256_DIGEST_LENGTH) != 0)
+	transaction_hash(transaction, hash_buf);
+	if (memcmp(transaction->id, hash_buf, SHA256_DIGEST_LENGTH))
 	{
-		fprintf(stderr, "transaction_is_valid: No match\n");
+		fprintf(stderr, "transaction_is_valid: invalid tx ID\n");
 		return (0);
 	}
-
-	/* Iterate through the inputs in the transaction */
-	for (i = 0; i < llist_size(transaction->inputs); i++)
+	args[0] = transaction->inputs, args[1] = &total_input;
+	args[2] = &i, args[3] = (void *)&transaction->id;
+	if (llist_for_each(all_unspent, find_unspent_tx_out, args)
+		|| i != (uint32_t)llist_size(transaction->inputs))
 	{
-		txi = llist_get_node_at(transaction->inputs, i);
-		/* Get the referenced unspent tx output */
-		utxo = find_unspent1(txi, all_unspent);
-		if (!utxo)
-		{
-			fprintf(stderr, "transaction_is_valid: utxo not found\n");
-			return (0);
-		}
-		/* Accumulate the total input value */
-		tot_in += utxo->out.amount;
-	}
-
-	/* Iterate through the outputs in the transaction */
-	for (i = 0; i < llist_size(transaction->outputs); i++)
-	{
-		/* Accumulate the total output value */
-		tot_out += ((tx_out_t *)llist_get_node_at(transaction->outputs,
-					i))->amount;
-	}
-
-	/* Validate tx amount */
-	if (tot_in != tot_out)
-	{
-		fprintf(stderr, "transaction_is_valid: tot_in != tot_out\n");
 		return (0);
 	}
-
+	if (llist_for_each(transaction->outputs, validate_txs, &total_input)
+		|| total_input != 0)
+	{
+		fprintf(stderr, "transaction_is_valid: invalid tx total in\n");
+		return (0);
+	}
 	return (1);
 }
-
