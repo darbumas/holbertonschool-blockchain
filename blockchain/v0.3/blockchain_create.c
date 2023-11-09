@@ -77,19 +77,14 @@ blockchain_t *blockchain_create(void)
 	if (!blockchain)
 		return (NULL);
 
-	blockchain->chain = llist_create(MT_SUPPORT_FALSE);
-	if (!blockchain->chain)
-	{
-		free(blockchain);
-		return (NULL);
-	}
-
 	genesis_block = malloc(sizeof(block_t));
 	if (!genesis_block)
-	{
-		free(blockchain);
-		return (NULL);
-	}
+		return (free(blockchain), NULL);
+
+	blockchain->chain = llist_create(MT_SUPPORT_FALSE);
+	if (!blockchain->chain)
+		return (free(blockchain), free(genesis_block), NULL);
+
 	memset(genesis_block, 0, sizeof(*genesis_block));
 	genesis_block->info.index = 0;
 	genesis_block->info.difficulty = 0;
@@ -101,10 +96,10 @@ blockchain_t *blockchain_create(void)
 	genesis_block->data.len = strlen(genesis_data);
 	hex2bin(genesis_hash, genesis_block->hash);
 	if (llist_add_node(blockchain->chain, genesis_block, ADD_NODE_REAR) != 0)
-	{
-		llist_destroy(blockchain->chain, 1, NULL);
-		free(blockchain);
-		return (NULL);
-	}
+		return (llist_destroy(blockchain->chain, 1, NULL),
+			free(blockchain), free(genesis_block), NULL);
+
+	blockchain->unspent = llist_create(MT_SUPPORT_FALSE);
+
 	return (blockchain);
 }
