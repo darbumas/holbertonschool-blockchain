@@ -19,13 +19,16 @@ block_t *block_create(block_t const *prev, int8_t const *data,
 	uint32_t data_len_cpy =
 		data_len > BLOCKCHAIN_DATA_MAX ? BLOCKCHAIN_DATA_MAX : data_len;
 
-	/* Just in case no previous Block */
-	if (!prev)
+	if (!prev || !data)
 		return (NULL);
 
 	block = malloc(sizeof(block_t));
 	if (!block)
 		return (NULL);
+
+	block->transactions = llist_create(MT_SUPPORT_FALSE);
+	if (!block->transactions)
+		return (free(block), NULL);
 
 	/* Init the Block */
 	block->info.index = prev->info.index + 1;
