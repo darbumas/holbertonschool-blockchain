@@ -20,9 +20,9 @@ int main(void)
 	_transaction_print(coinbase);
 
 	if (coinbase_is_valid(coinbase, 1))
-	    printf("Coinbase transaction valid\n");
+		printf("Coinbase transaction valid\n");
 	else
-	    fprintf(stderr, "Coinbase transaction invalid\n");
+		fprintf(stderr, "Coinbase transaction invalid\n");
 
 	/* Cleanup */
 	EC_KEY_free(owner);
