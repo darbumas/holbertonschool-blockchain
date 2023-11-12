@@ -4,216 +4,159 @@
 #include <errno.h>
 
 /**
- * path_validate - validates the path and opens a file descriptor in read-only
- * @path: path in which file to be found
+ * swap_block_header_endian - swap endianness of block header
  *
- * Return: file descriptor, or -1 upon failure
+ * @block: pointer to block to be swapped
+ * @direction: direction of swap
  */
-int path_validate(char const *path)
+void swap_block_header_endian(block_t *block, uint8_t direction)
 {
-	struct stat status;
-	int fd;
-
-	if (lstat(path, &status) == -1)
-	{
-		fprintf(stderr, "path_validate: lstat '%s': %s\n", path,
-				strerror(errno));
-		return (-1);
-	}
-
-	if ((size_t)(status.st_size) < sizeof(hblk_file_hdr_t) +
-			GEN_BLK_SERIAL_SZ)
-	{
-		fprintf(stderr, "path_validate: %s\n",
-			"file is too small to contain a valid blockchain");
-		return (-1);
-	}
-	fd = open(path, O_RDONLY);
-	if (fd == -1)
-	{
-		fprintf(stderr, "path_validate: open '%s': %s\n", path,
-				strerror(errno));
-	}
-	return (fd);
+	_swap_endian(&block->info.index, sizeof(block->info.index));
+	_swap_endian(&block->info.difficulty, sizeof(block->info.difficulty));
+	_swap_endian(&block->info.timestamp, sizeof(block->info.timestamp));
+	_swap_endian(&block->info.nonce, sizeof(block->info.nonce));
 }
 
 /**
- * read_file_hdr - reads and validates blockchain serialized file header
- * @fd: file descriptor
- * @local_endian: 1 for little, 2 for big
- * @file_endian: 1 for little, 2 for big
- * @blocks: number of blocks in blockchain
- * Return: 0 on success, or 1 on failure
+ * read_block_header - Reads a block header from a file
+ *
+ * @file: File pointer
+ * @block: pointer to a block to save the data to
+ * Return: 0 on success, -1 on failure
  */
-int read_file_hdr(int fd, uint8_t local_endian, uint8_t *file_endian,
-		uint32_t *blocks)
+int read_block_header(FILE *file, block_t *block)
 {
-	hblk_file_hdr_t hdr;
+	if (!file || !block)
+		return (-1);
 
-	if (!file_endian || !blocks)
-	{
-		fprintf(stderr, "read_file_hdr: NULL parameter(s)\n");
-		return (1);
-	}
-	if (local_endian != 1 && local_endian != 2)
-	{
-		fprintf(stderr, "read_file_hdr: invalid local endianness\n");
-		return (1);
-	}
-	if (read(fd, &hdr, sizeof(hblk_file_hdr_t)) == -1)
-	{
-		perror("read_file_hdr: read");
-		return (1);
-	}
-	if (strncmp((char *)hdr.hblk_magic, HBLK_MAGIC, HBLK_MAGIC_LEN) != 0)
-	{
-		fprintf(stderr, "read_file_hdr: invalid magic number\n");
-		return (1);
-	}
-	if (strncmp((char *)hdr.hblk_version, HBLK_VERSION, HBLK_VERSION_LEN)
-			!= 0)
-	{
-		fprintf(stderr, "read_file_hdr: %s\n",
-				"Incompatible version number");
-		return (1);
-	}
+	fread(&block->info, sizeof(block->info), 1, file);
+	if (ferror(file))
+		return (-1);
 
-	*file_endian = hdr.hblk_endian;
-	if (*file_endian != local_endian)
-#ifdef __GNUC__
-		hdr.hblk_blocks = __builtin_bswap32(hdr.hblk_blocks);
-#else
-		_swap_endian(&(hdr.hblk_blocks), 32);
-#endif
-	*blocks = hdr.hblk_blocks;
 	return (0);
 }
 
 /**
- * bswap_block - reverses endianness of relevant values in block_t struct
- * @block: pointer to the block to have values' byte order reversed
+ * read_block_data - Reads a block data from a file
  *
- * Note: __builtin_bswapXX preferred over _swap_endian in
- * provided/_endianness.c
- * for being compiled as only one assembly instruction
+ * @file: File pointer
+ * @block: pointer to a block to save the data to
+ * @flag_endian: flag to swap endianness
+ * Return: 0 on success, -1 on failure
  */
-void bswap_block(block_t *block)
+int read_block_data(FILE *file, block_t *block, uint8_t flag_endian)
 {
-	if (!block)
+	uint32_t data_len;
+
+	if (!file || !block)
+		return (-1);
+
+	fread(&data_len, sizeof(data_len), 1, file);
+	if (ferror(file))
 	{
-		fprintf(stderr, "bswap_block: NULL parameter\n");
-		return;
+		fprintf(stderr, "read_block_data: fread failed\n");
+		return (-1);
 	}
 
-#ifdef __GNUC__
-	block->info.index = __builtin_bswap32(block->info.index);
-	block->info.difficulty = __builtin_bswap32(block->info.difficulty);
-	block->info.timestamp = __builtin_bswap64(block->info.timestamp);
-	block->info.nonce = __builtin_bswap64(block->info.nonce);
-	block->data.len = __builtin_bswap32(block->data.len);
-#else
-	_swap_endian(&(block->info.index), 32);
-	_swap_endian(&(block->info.difficulty), 32);
-	_swap_endian(&(block->info.timestamp), 64);
-	_swap_endian(&(block->info.nonce), 64);
-	_swap_endian(&(block->data.len), 32);
-#endif
+	if (flag_endian)
+		_swap_endian(&data_len, sizeof(data_len));
+
+	fread(&block->data.buffer, data_len, 1, file);
+	fread(&block->hash, SHA256_DIGEST_LENGTH, 1, file);
+
+	if (swap_endian)
+		swap_block_header_endian(block, 1);
+
+	block->data.len = data_len;
+	*(block->data.buffer + data_len) = '\0';
+
+	return (0);
 }
 
 /**
- * deserialize_blocks - deserializes blocks from file into blockchain structure
- * @fd: file descriptor
- * @blockchain: pointer to an empty blockchain struct
- * @local_endian: 1 for little, 2 for big
- * @file_endian: 1 for little, 2 for big
- * @blocks: number of blocks in the blockchain
+ * deserialize_blocks - deserializes all blocks from a file to a blockchain
  *
- * Return: 0 on success, 1 upon failure
+ * @file: file pointer
+ * @blockchain: pointer to blockchain to add blocks to
+ * @num_blocks: number of blocks to deserialize
+ * Return: 0 on success, -1 on failure
  */
-int deserialize_blocks(int fd, const blockchain_t *blockchain,
-		uint8_t local_endian, uint8_t file_endian, uint32_t blocks)
+int deserialize_blocks(FILE *file, blockchain_t *blockchain,
+			uint32_t num_blocks)
 {
-	uint32_t i;
 	block_t *block;
+	long int genesis_size;
+	uint32_t i;
 
-	if (!blockchain || !llist_is_empty(blockchain->chain))
+	if (!file || !blockchain)
+		return (-1);
+
+	genesis_size = sizeof(block->info) + sizeof(block->hash) + 20L;
+
+	fseek(file, genesis_size, SEEK_CUR);
+
+	for (i = 0; i < num_blocks - 1; i++)
 	{
-		fprintf(stderr, "deserialize_blocks: NULL paramete or empy\n");
-		return (1);
-	}
-	for (i = 0; i < blocks; i++)
-	{
-		/* assuming header has already been read from fd */
-		block = calloc(1, sizeof(block_t));
+		block = calloc(1, sizeof(*block));
 		if (!block)
+			return (-1);
+
+		if (read_block_header(file, block) == -1 ||
+			read_block_data(file, block, 0) == -1)
 		{
-			fprintf(stderr, "deserialize_blocks: calloc failed\n");
-			return (1);
+			free(block);
+			return (-1);
 		}
-		if (read(fd, &(block->info), sizeof(block_info_t)) == -1 ||
-			read(fd, &(block->data.len), sizeof(uint32_t)) == -1 ||
-			read(fd, &(block->data.buffer), block->data.len) == -1 ||
-			read(fd, &(block->hash), SHA256_DIGEST_LENGTH) == -1)
-		{
-			perror("deserialize_blocks: read");
-			return (1);
-		}
-		if (local_endian != file_endian)
-			bswap_block(block);
-		if (llist_add_node(blockchain->chain, (llist_node_t)block,
-					ADD_NODE_REAR) != 0)
-		{
-			fprintf(stderr, "llist_add_node: %s\n",
-				strE_LLIST(llist_errno));
-			return (1);
-		}
+
+		llist_add_node(blockchain->chain, block, ADD_NODE_REAR);
 	}
+
 	return (0);
 }
 
 /**
- * blockchain_deserialize - deserializes a blockchain from a file
- * @path: full path to file
+ * blockchain_deserialize - deserializes a Blockchain from a file
  *
- * Return: pointer to the deserialized blockchain, or NULL on failure
+ * @path: path to a file to load the Blockchain from
+ * Return: pointer to the deserialized Blockchain or NULL on failure
  */
 blockchain_t *blockchain_deserialize(char const *path)
 {
-	int fd;
-	uint8_t local_endian, file_endian;
-	uint32_t blocks;
+	FILE *file;
 	blockchain_t *blockchain;
-	block_t *genesis;
+	hblk_file_t header;
+	block_t *block;
+	uint8_t hblk_magic[4], hblk_version[3], hblk_endian;
+	int32_t hblk_blocks;
 
-	if (!path)
-	{
-		fprintf(stderr, "blockchain_deserialize: NULL parameter\n");
+	if (!path || access(path, F_OK) == -1)
 		return (NULL);
-	}
-	fd = path_validate(path);
-	if (fd == -1)
+
+	file = fopen(path, "r");
+	if (!file)
 		return (NULL);
+	fread(&header, sizeof(header), 1, file);
+	if (ferror(file))
+		return (fclose(file), NULL);
+
+	if (memcmp(header.hblk_magic, "HBLK", 4) ||
+	    memcmp(header.hblk_version, "0.3", 3))
+		return (fclose(file), NULL);
+
 	blockchain = blockchain_create();
 	if (!blockchain)
-	{
-		close(fd);
-		return (NULL);
-	}
-	/* remove preloaded Genesis Block at head of list */
-	genesis = (block_t *)llist_pop(blockchain->chain);
-	if (genesis)
-		free(genesis);
+		return (fclose(file), NULL);
 
-	local_endian = _get_endianness();
-
-	if (read_file_hdr(fd, local_endian, &file_endian, &blocks) != 0 ||
-		deserialize_blocks(fd, blockchain, local_endian, file_endian,
-			blocks) != 0)
+	hblk_endian = _get_endianness() != header.hblk_endian;
+	hblk_blocks = header.hblk_blocks;
+	if (hblk_endian)
 	{
-		close(fd);
-		blockchain_destroy(blockchain);
-		return (NULL);
+		_swap_endian(&hblk_blocks, sizeof(hblk_blocks));
+		_swap_endian(&header.hblk_blocks, sizeof(header.hblk_blocks));
 	}
-	close(fd);
+	if (deserialize_blocks(file, blockchain, hblk_blocks) == -1)
+		return (blockchain_destroy(blockchain), fclose(file), NULL);
+
+	fclose(file);
 	return (blockchain);
 }
