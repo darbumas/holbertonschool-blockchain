@@ -106,6 +106,12 @@ int transaction_is_valid(transaction_t const *transaction,
 	{
 		fprintf(stderr, "transaction_is_valid: invalid tx total in\n");
 		return (0);
+		/* debugging */
+		fprintf(stderr, "transaction_is_valid: total_input = %u\n",
+			total_input);
+		return (0);
 	}
+	/* debugging */
+	fprintf(stderr, "transaction_is_valid: transaction is valid\n");
 	return (1);
 }
