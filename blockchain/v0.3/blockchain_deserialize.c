@@ -127,8 +127,7 @@ blockchain_t *blockchain_deserialize(char const *path)
 	FILE *file;
 	blockchain_t *blockchain;
 	hblk_file_hdr_t header;
-	block_t *block;
-	uint8_t hblk_magic[4], hblk_version[3], hblk_endian;
+	uint8_t hblk_endian;
 	int32_t hblk_blocks;
 
 	if (!path || access(path, F_OK) == -1)
