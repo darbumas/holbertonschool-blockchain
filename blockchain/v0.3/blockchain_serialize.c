@@ -1,4 +1,5 @@
 #include "blockchain.h"
+#include "provided/endianness.h"
 
 /**
  * write_single_block - Callback function to write a single block to a file
@@ -10,9 +11,10 @@
  */
 int write_single_block(llist_node_t ptr, unsigned int index, void *arg)
 {
-	(void)index;
-	block_t *block = ptr;
 	FILE *fp = arg;
+	block_t *block = ptr;
+
+	(void)index;
 
 	if (!arg || !block)
 		return (-1);
@@ -34,7 +36,7 @@ int write_single_block(llist_node_t ptr, unsigned int index, void *arg)
 int blockchain_serialize(blockchain_t const *blockchain, char const *path)
 {
 	FILE *fp;
-	hblk_file_t header;
+	hblk_file_hdr_t header;
 
 	if (!blockchain || !path)
 		return (-1);
@@ -43,7 +45,7 @@ int blockchain_serialize(blockchain_t const *blockchain, char const *path)
 	memcpy(header.hblk_version, "0.3", 3);
 	header.hblk_endian = _get_endianness();
 	header.hblk_blocks = llist_size(blockchain->chain);
-	if (header.hblk_blocks == -1)
+	if ((int)header.hblk_blocks == -1)
 		return (-1);
 
 	/* open file for writing */
