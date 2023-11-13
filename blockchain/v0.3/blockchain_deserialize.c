@@ -11,6 +11,8 @@
  */
 void swap_block_header_endian(block_t *block, uint8_t direction)
 {
+	(void)direction;
+
 	_swap_endian(&block->info.index, sizeof(block->info.index));
 	_swap_endian(&block->info.difficulty, sizeof(block->info.difficulty));
 	_swap_endian(&block->info.timestamp, sizeof(block->info.timestamp));
@@ -64,7 +66,7 @@ int read_block_data(FILE *file, block_t *block, uint8_t flag_endian)
 	fread(&block->data.buffer, data_len, 1, file);
 	fread(&block->hash, SHA256_DIGEST_LENGTH, 1, file);
 
-	if (swap_endian)
+	if (flag_endian)
 		swap_block_header_endian(block, 1);
 
 	block->data.len = data_len;
@@ -124,7 +126,7 @@ blockchain_t *blockchain_deserialize(char const *path)
 {
 	FILE *file;
 	blockchain_t *blockchain;
-	hblk_file_t header;
+	hblk_file_hdr_t header;
 	block_t *block;
 	uint8_t hblk_magic[4], hblk_version[3], hblk_endian;
 	int32_t hblk_blocks;
